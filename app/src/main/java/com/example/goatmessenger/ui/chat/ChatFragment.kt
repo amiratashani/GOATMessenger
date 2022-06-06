@@ -2,25 +2,26 @@ package com.example.goatmessenger.ui.chat
 
 import android.os.Bundle
 import android.transition.TransitionInflater
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
+import android.view.inputmethod.EditorInfo
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
-import com.example.goatmessenger.ui.viewBindings
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.goatmessenger.R
 import com.example.goatmessenger.databinding.ChatFragmentBinding
 import com.example.goatmessenger.getNavigationController
+import com.example.goatmessenger.ui.viewBindings
 
 /**
  * The chat screen.
  */
-class ChatFragment : Fragment() {
+class ChatFragment : Fragment(R.layout.chat_fragment) {
 
     companion object {
         private const val ARG_ID = "id"
+
         fun newInstance(id: Long) =
             ChatFragment().apply {
                 arguments = Bundle().apply {
@@ -30,9 +31,7 @@ class ChatFragment : Fragment() {
     }
 
     private val viewModel: ChatViewModel by viewModels()
-
-    //use this for setup view
-    private var binding: ChatFragmentBinding? = null
+    private val binding by viewBindings(ChatFragmentBinding::bind)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,49 +40,64 @@ class ChatFragment : Fragment() {
             TransitionInflater.from(context).inflateTransition(R.transition.slide_bottom)
     }
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View? {
-        binding = ChatFragmentBinding.inflate(inflater,container,false)
-        return binding?.root
-    }
-
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        donNotChangeThisMethod()
-
-        // write your code after this line here
-    }
-
-    override fun onDestroyView() {
-        // Consider not storing the binding instance in a field, if not needed.
-        binding = null
-        super.onDestroyView()
-    }
-
-    private fun donNotChangeThisMethod() {
         val id = arguments?.getLong(ARG_ID)
         if (id == null) {
             parentFragmentManager.popBackStack()
             return
         }
-        viewModel.setContactId(id)
+
+        val navigationController = getNavigationController()
+
+        viewModel.setChatId(id)
+
+        val messageAdapter = MessageAdapter(view.context)
+        val linearLayoutManager = LinearLayoutManager(view.context).apply {
+            stackFromEnd = true
+        }
+        binding.messages.run {
+            layoutManager = linearLayoutManager
+            adapter = messageAdapter
+        }
+
         viewModel.contact.observe(viewLifecycleOwner) { contact ->
             if (contact == null) {
-                Toast.makeText(context, "Contact not found", Toast.LENGTH_SHORT).show()
+                Toast.makeText(view.context, "Contact not found", Toast.LENGTH_SHORT).show()
                 parentFragmentManager.popBackStack()
             } else {
-                getNavigationController().updateAppBar { name, icon ->
+                navigationController.updateAppBar { name, icon ->
                     name.text = contact.name
                     icon.setImageDrawable(ContextCompat.getDrawable(requireContext(), contact.icon))
                     startPostponedEnterTransition()
                 }
             }
         }
+
+        viewModel.messages.observe(viewLifecycleOwner) { messages ->
+            messageAdapter.submitList(messages)
+            linearLayoutManager.scrollToPosition(messages.size - 1)
+        }
+
+        binding.send.setOnClickListener {
+            send()
+        }
+        binding.input.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_SEND) {
+                send()
+                true
+            } else {
+                false
+            }
+        }
     }
 
 
-
-
+    private fun send() {
+        binding.input.text?.let { text ->
+            if (text.isNotEmpty()) {
+                viewModel.send(text.toString())
+                text.clear()
+            }
+        }
+    }
 }

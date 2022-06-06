@@ -1,6 +1,7 @@
 package com.example.goatmessenger.data
 
 import android.content.Context
+import android.net.Uri
 import androidx.annotation.MainThread
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -10,6 +11,8 @@ import java.util.concurrent.Executors
 interface ChatRepository {
     fun getContacts(): LiveData<List<Contact>>
     fun findContact(id: Long): LiveData<Contact?>
+    fun findMessages(id: Long): LiveData<List<Message>>
+    fun sendMessage(id: Long, text: String)
 
     // Add your methods definition here
 }
@@ -50,7 +53,24 @@ class DefaultChatRepository internal constructor() : ChatRepository {
         }
     }
 
+    @MainThread
+    override fun findMessages(id: Long): LiveData<List<Message>> {
+        return MutableLiveData(messages)
+    }
 
-    // Add your methods implantation here
+    @MainThread
+    override fun sendMessage(id: Long, text: String) {
+        addMessage(Message.Builder().apply {
+            sender = 0L // User
+            this.text = text
+            timestamp = System.currentTimeMillis()
+        })
+        addMessage(currentContact.createSimpleMessage())
+    }
+
+    private fun addMessage(builder: Message.Builder) {
+        builder.id = messages.last().id + 1
+        messages.add(builder.build())
+    }
 
 }
