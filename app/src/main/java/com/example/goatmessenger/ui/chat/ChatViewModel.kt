@@ -2,6 +2,7 @@ package com.example.goatmessenger.ui.chat
 
 import android.app.Application
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.*
 import com.example.goatmessenger.data.ChatRepository
 import com.example.goatmessenger.data.DefaultChatRepository
@@ -40,6 +41,16 @@ class ChatViewModel @JvmOverloads constructor(
 
     fun setChatId(id: Long) {
         chatId.value = id
+    }
+
+    fun remove(id: Long) {
+        repository.removeMessage(id)
+        messages.postValue(repository.findMessages(0).value)
+    }
+
+    fun update(id: Long,text: String) {
+        repository.updateMessage(id,text)
+        messages.postValue(repository.findMessages(0).value)
     }
 
     fun send(text: String) {

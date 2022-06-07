@@ -6,6 +6,7 @@ import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.view.Gravity
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.TextView
@@ -19,7 +20,7 @@ import com.example.goatmessenger.data.Message
 import com.example.goatmessenger.databinding.MessageItemBinding
 
 class MessageAdapter(
-    context: Context
+    context: Context,val longClick:(messageId : Long)->Unit
 ) : ListAdapter<Message, MessageViewHolder>(DIFF_CALLBACK) {
 
     private val tint = object {
@@ -69,7 +70,6 @@ class MessageAdapter(
         if (message.isIncoming) {
             holder.binding.message.run {
                 setBackgroundResource(R.drawable.message_incoming)
-                ViewCompat.setBackgroundTintList(this, tint.incoming)
                 setPadding(
                     padding.horizontalLong, padding.vertical,
                     padding.horizontalShort, padding.vertical
@@ -81,7 +81,6 @@ class MessageAdapter(
         } else {
             holder.binding.message.run {
                 setBackgroundResource(R.drawable.message_outgoing)
-                ViewCompat.setBackgroundTintList(this, tint.outgoing)
                 setPadding(
                     padding.horizontalShort, padding.vertical,
                     padding.horizontalLong, padding.vertical
@@ -89,6 +88,10 @@ class MessageAdapter(
                 layoutParams = lp.apply {
                     gravity = Gravity.END
                 }
+            }
+            holder.binding.message.setOnLongClickListener {
+                longClick.invoke(message.id)
+                true
             }
         }
 
@@ -103,7 +106,7 @@ private val DIFF_CALLBACK = object : DiffUtil.ItemCallback<Message>() {
     }
 
     override fun areContentsTheSame(oldItem: Message, newItem: Message): Boolean {
-        return oldItem == newItem
+        return false
     }
 
 }

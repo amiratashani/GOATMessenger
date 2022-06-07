@@ -1,7 +1,10 @@
 package com.example.goatmessenger.ui.chat
 
+import android.app.AlertDialog
 import android.os.Bundle
+import android.os.Handler
 import android.transition.TransitionInflater
+import android.util.Log
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.Toast
@@ -10,7 +13,9 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.goatmessenger.R
+import com.example.goatmessenger.data.Message
 import com.example.goatmessenger.databinding.ChatFragmentBinding
+import com.example.goatmessenger.databinding.PfmMoreOptionDialogBinding
 import com.example.goatmessenger.getNavigationController
 import com.example.goatmessenger.ui.viewBindings
 
@@ -18,6 +23,7 @@ import com.example.goatmessenger.ui.viewBindings
  * The chat screen.
  */
 class ChatFragment : Fragment(R.layout.chat_fragment) {
+    val handler = Handler()
 
     companion object {
         private const val ARG_ID = "id"
@@ -51,7 +57,10 @@ class ChatFragment : Fragment(R.layout.chat_fragment) {
 
         viewModel.setChatId(id)
 
-        val messageAdapter = MessageAdapter(view.context)
+        val messageAdapter = MessageAdapter(view.context){
+            showOptionDialog(it)
+        }
+
         val linearLayoutManager = LinearLayoutManager(view.context).apply {
             stackFromEnd = true
         }
@@ -74,8 +83,13 @@ class ChatFragment : Fragment(R.layout.chat_fragment) {
         }
 
         viewModel.messages.observe(viewLifecycleOwner) { messages ->
-            messageAdapter.submitList(messages)
-            linearLayoutManager.scrollToPosition(messages.size - 1)
+            Log.e("Amir","observe messages")
+            val tmpMessages =ArrayList<Message>()
+            tmpMessages.addAll(messages)
+            messageAdapter.submitList(tmpMessages)
+
+            handler.postDelayed({  binding.messages.smoothScrollToPosition(messages.size - 1)}, 200)
+
         }
 
         binding.send.setOnClickListener {
@@ -91,6 +105,27 @@ class ChatFragment : Fragment(R.layout.chat_fragment) {
         }
     }
 
+    private fun showOptionDialog(messageId:Long) {
+
+        val binding = PfmMoreOptionDialogBinding.inflate(layoutInflater)
+
+        var alertDialog = AlertDialog.Builder(requireContext()).apply {
+            binding.root.setBackgroundColor(ContextCompat.getColor(requireContext(),android.R.color.transparent))
+            setView(binding.root)
+        }.create()
+
+        binding.alertView.setOnClickListener {
+            alertDialog.dismiss()
+            viewModel.update(messageId,"This Message Edited")
+        }
+
+        binding.analysisReportConstraint.setOnClickListener {
+            alertDialog.dismiss()
+            viewModel.remove(messageId)
+        }
+
+        alertDialog.show()
+    }
 
     private fun send() {
         binding.input.text?.let { text ->

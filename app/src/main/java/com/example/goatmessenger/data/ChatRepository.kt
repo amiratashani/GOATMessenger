@@ -2,6 +2,7 @@ package com.example.goatmessenger.data
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.annotation.MainThread
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -13,6 +14,8 @@ interface ChatRepository {
     fun findContact(id: Long): LiveData<Contact?>
     fun findMessages(id: Long): LiveData<List<Message>>
     fun sendMessage(id: Long, text: String)
+    fun removeMessage(id: Long)
+    fun updateMessage(id: Long, text: String)
 
     // Add your methods definition here
 }
@@ -66,6 +69,18 @@ class DefaultChatRepository internal constructor() : ChatRepository {
             timestamp = System.currentTimeMillis()
         })
         addMessage(currentContact.createSimpleMessage())
+    }
+
+    override fun removeMessage(id: Long) {
+        val message = messages.find { it.id == id }
+        messages.remove(message)
+    }
+
+    override fun updateMessage(id: Long, text: String) {
+        val message = messages.find { it.id == id }
+        message!!.text = text
+        val index = messages.indexOf(message)
+        messages[index] = message
     }
 
     private fun addMessage(builder: Message.Builder) {
